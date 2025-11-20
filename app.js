@@ -44,8 +44,8 @@ app.post("/api/article", (req, res) => {
 });
 
 // Lancer le serveur
-//const PORT = process.env.PORT || 8080; // fallback local
-const PORT = 8080; // fallback local
+const PORT = process.env.PORT || 8080; // fallback local
+//const PORT = 8080; // fallback local
 app.listen(PORT, () => {
     console.log("Serveur Node.js démarré sur le port " + PORT);
 });
