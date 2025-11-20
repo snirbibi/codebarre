@@ -132,7 +132,9 @@ function startScanner() {
     Quagga.onDetected(function(result) {
         const code = result.codeResult.code;
         $("#result").text(code).addClass("fade-in");
-        getItemFromServer(code);
+		// Vérifie si le code détecté est bien un code EAN-13 (longueur 13)
+		if(code.length ==13)
+			getItemFromServer(code);
     });
 }
 
