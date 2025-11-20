@@ -36,12 +36,11 @@ body {
     color: #0d6efd;
 }
 
-/* --- Correction paysage : hauteur basée sur --vh --- */
 #camera {
     flex: 1;
     width: 100%;
-    height: calc(var(--vh, 1vh) * 50);
-    min-height: 250px;
+    height: 50vh; /* hauteur initiale pour éviter le saut sur mobile */
+    min-height: 300px;
     background-color: #000;
     position: relative;
     overflow: hidden;
@@ -56,7 +55,7 @@ body {
 .info-box-container {
     padding: 10px;
     background: #f8f9fa;
-    display: none;
+    display: none; /* caché au départ */
 }
 
 .info-box { 
@@ -78,31 +77,21 @@ body {
 </style>
 
 <script>
-// --- Fix hauteur de l'écran (corrige la disparition en paysage) ---
-function fixViewportHeight() {
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
-}
-
 $(document).ready(function() {
-
-    fixViewportHeight();
-    window.addEventListener('resize', fixViewportHeight);
-    window.addEventListener('orientationchange', () => {
-        fixViewportHeight();
-        Quagga.stop();
-        setTimeout(startScanner, 800); // délai augmenté pour stabilité
-    });
-
     startScanner();
     $("#restartBtn").click(restartScanner);
+
+    window.addEventListener('orientationchange', () => {
+        Quagga.stop();
+        setTimeout(startScanner, 300);
+    });
 });
 
 function startScanner() {
-    $(".info-box-container").hide();
+    $(".info-box-container").hide(); // cacher au départ
 
     const width = window.innerWidth;
-    const height = window.innerHeight * 0.5; // autrement plus fiable
+    const height = window.innerHeight - $(".header-title").outerHeight() - 10;
 
     const config = {
         inputStream: {
@@ -121,12 +110,12 @@ function startScanner() {
 
     Quagga.init(config, function(err) {
         if (err) {
-            console.error("Erreur init Quagga :", err);
-            $("#result").text("Impossible d'initialiser la caméra");
+            console.error("Erreur initialisation Quagga :", err);
+            $("#result").text("Impossible d'initialiser le scanner !");
             return;
         }
         Quagga.start();
-        $(".info-box-container").fadeIn(200);
+        $(".info-box-container").fadeIn(200); // montrer après que la caméra est prête
     });
 
     Quagga.onDetected(function(result) {
@@ -168,7 +157,6 @@ function getItemFromServer(codeBarre) {
 </head>
 
 <body>
-
 <div class="header-title">
     <div class="icon-scan">📷</div>
     <h1>Scanner EAN-13</h1>
@@ -185,6 +173,5 @@ function getItemFromServer(codeBarre) {
     </div>
     <button id="restartBtn" class="btn btn-warning w-100">Redémarrer Scanner</button>
 </div>
-
 </body>
 </html>
