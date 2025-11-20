@@ -43,6 +43,12 @@ body { padding: 10px; }
 $(document).ready(function() {
     startScanner();
     $("#restartBtn").click(restartScanner);
+
+    // Gestion rotation smartphone
+    window.addEventListener('orientationchange', () => {
+        Quagga.stop();
+        setTimeout(startScanner, 300); // petit délai pour que le navigateur ajuste les dimensions
+    });
 });
 
 function startScanner() {
@@ -56,8 +62,8 @@ function startScanner() {
             target: document.querySelector("#camera"),
             constraints: {
                 facingMode: { ideal: "environment" },
-                width: { ideal: width },
-                height: { ideal: height }
+                width: { min: 320, ideal: width },
+                height: { min: 240, ideal: height }
             }
         },
         decoder: { readers: ["ean_reader"] },
@@ -67,7 +73,7 @@ function startScanner() {
     Quagga.init(config, function(err) {
         if (err) {
             console.error("Erreur initialisation Quagga :", err);
-            alert("Impossible d'initialiser le scanner !");
+            $("#result").text("Impossible d'initialiser le scanner !");
             return;
         }
         Quagga.start();
