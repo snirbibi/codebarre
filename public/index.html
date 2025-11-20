@@ -26,11 +26,29 @@ body {
     flex-direction: column;
 }
 
+.header-title {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.icon-scan {
+    font-size: 40px;
+    color: #0d6efd;
+}
+
 #camera {
     flex: 1; /* prend tout l’espace restant */
     width: 100%;
     background-color: #000;
     position: relative;
+    overflow: hidden;
+}
+
+/* Forcer la vidéo à remplir tout le conteneur */
+#camera video, #camera canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
 }
 
 .info-box-container {
@@ -44,9 +62,6 @@ body {
     margin-bottom: 5px;
     word-break: break-word;
 }
-
-.header-title { text-align: center; margin: 10px 0; }
-.icon-scan { font-size: 40px; color: #0d6efd; }
 
 .fade-in { animation: fadeIn 0.5s ease-in; }
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
@@ -73,7 +88,7 @@ $(document).ready(function() {
 
 function startScanner() {
     const width = window.innerWidth;
-    const height = window.innerHeight - $(".info-box-container").outerHeight();
+    const height = window.innerHeight - $(".info-box-container").outerHeight() - $(".header-title").outerHeight();
 
     const config = {
         inputStream: {
