@@ -2,191 +2,171 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Scanner EAN-13 Optimisé</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scanner EAN-13</title>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-
-<!-- Quagga2 -->
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-
-<!-- Bootstrap -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
 html, body {
     height: 100%;
     margin: 0;
 }
-
 body {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .header-title {
     text-align: center;
-    margin: 10px 0;
+    padding: 10px 0 15px;
+    flex: 0 0 auto;
 }
+.icon-scan { font-size: 40px; color: #0d6efd; }
 
-.icon-scan {
-    font-size: 40px;
-    color: #0d6efd;
-}
-
-/* --- Correction paysage : hauteur basée sur --vh --- */
-#camera {
-    flex: 1;
-    width: 100%;
-    height: calc(var(--vh, 1vh) * 50);
-    min-height: 250px;
-    background-color: #000;
-    position: relative;
+#main-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: row;
     overflow: hidden;
 }
 
-#camera video, #camera canvas {
+#camera {
+    flex: 1;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+}
+#camera video,
+#camera canvas {
+    position: absolute;
+    inset: 0;
     width: 100% !important;
     height: 100% !important;
     object-fit: cover;
 }
 
-.info-box-container {
-    padding: 10px;
+#info-box {
+    flex: 1;
     background: #f8f9fa;
-    display: none;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
 }
 
-.info-box { 
-    padding: 10px; 
-    border-radius: 8px; 
-    margin-bottom: 5px;
-    word-break: break-word;
+#info-box .info-text {
+    flex: 1 1 auto;
+    overflow-y: auto;
 }
 
-.fade-in { animation: fadeIn 0.5s ease-in; }
-@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+#info-box button {
+    flex: 0 0 auto;
+    margin-top: 10px;
+}
 
-#result { font-weight: bold; color: #007bff; font-size: 20px; }
+/* --------- MOBILE XS --------- */
+@media (max-width: 767px) {
+    #main-content {
+        flex-direction: column;
+    }
 
-@media (max-width: 576px) {
-    #result, #description, #price { font-size: 16px; }
-    .icon-scan { font-size: 30px; }
+    #camera {
+        flex: 0 0 50vh; /* hauteur caméra fixe */
+    }
+
+    #info-box {
+        flex: 1 1 auto; /* occupe le reste de l’écran */
+        padding: 10px;
+    }
+
+    #info-box .info-text {
+        flex: 1 1 auto;
+        overflow-y: auto; /* texte scrollable si nécessaire */
+    }
+
+    #info-box button {
+        flex: 0 0 auto; /* bouton toujours visible */
+    }
 }
 </style>
-
-<script>
-// --- Fix hauteur de l'écran (corrige la disparition en paysage) ---
-function fixViewportHeight() {
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
-}
-
-$(document).ready(function() {
-
-    fixViewportHeight();
-    window.addEventListener('resize', fixViewportHeight);
-    window.addEventListener('orientationchange', () => {
-        fixViewportHeight();
-        Quagga.stop();
-        setTimeout(startScanner, 800); // délai augmenté pour stabilité
-    });
-
-    startScanner();
-    $("#restartBtn").click(restartScanner);
-});
-
-function startScanner() {
-    $(".info-box-container").hide();
-
-    const width = window.innerWidth;
-    const height = window.innerHeight * 0.5; // autrement plus fiable
-
-    const config = {
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector("#camera"),
-            constraints: {
-                facingMode: { ideal: "environment" },
-                width: { min: 320, ideal: width },
-                height: { min: 240, ideal: height }
-            }
-        },
-        decoder: { readers: ["ean_reader"] },
-        locate: true
-    };
-
-    Quagga.init(config, function(err) {
-        if (err) {
-            console.error("Erreur init Quagga :", err);
-            $("#result").text("Impossible d'initialiser la caméra");
-            return;
-        }
-        Quagga.start();
-        $(".info-box-container").fadeIn(200);
-    });
-
-    Quagga.onDetected(function(result) {
-        const code = result.codeResult.code;
-        $("#result").text(code).addClass("fade-in");
-		// Vérifie si le code détecté est bien un code EAN-13 (longueur 13)
-		if(code.length ==13)
-			getItemFromServer(code);
-    });
-}
-
-function restartScanner() {
-    Quagga.stop();
-    $("#result").text("Aucun");
-    $("#description").text("En attente...");
-    $("#price").text("En attente...");
-    startScanner();
-}
-
-function getItemFromServer(codeBarre) {
-    $.ajax({
-        url: "/api/article",
-        method: "POST",
-        data: { codeBarre: codeBarre },
-        success: function(response) {
-            if (response.message === "OK") {
-                $("#description").text(response.results.designation).addClass("fade-in");
-                $("#price").text(response.results.prix + " €").addClass("fade-in");
-            } else {
-                $("#description").text("Article non trouvé");
-                $("#price").text("N/A");
-            }
-        },
-        error: function() {
-            $("#description").text("Erreur serveur");
-            $("#price").text("N/A");
-        }
-    });
-}
-</script>
 </head>
 
 <body>
 
 <div class="header-title">
     <div class="icon-scan">📷</div>
-    <h1>Scanner EAN-13</h1>
+    <h1 class="mb-0">Scanner EAN-13</h1>
     <p class="text-muted">Lycée de l'Europe – Dunkerque</p>
 </div>
 
-<div id="camera"></div>
+<div id="main-content">
+    <div id="camera"></div>
 
-<div class="info-box-container">
-    <div class="info-box">
-        <p>Code détecté : <span id="result">Aucun</span></p>
-        <p>Description : <span id="description">En attente...</span></p>
-        <p>Prix : <span id="price">En attente...</span></p>
+    <div id="info-box">
+        <div class="info-text">
+            <h3>Informations article</h3>
+            <p><strong>Code :</strong> <span id="result">Aucun</span></p>
+            <p><strong>Description :</strong> <span id="description">En attente...</span></p>
+            <p><strong>Prix :</strong> <span id="price">En attente...</span></p>
+        </div>
+        <button class="btn btn-warning" onclick="restartScanner()">Redémarrer</button>
     </div>
-    <button id="restartBtn" class="btn btn-warning w-100">Redémarrer Scanner</button>
 </div>
+
+<script>
+function startScanner() {
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector("#camera"),
+            constraints: { facingMode: "environment" }
+        },
+        decoder: { readers: ["ean_reader"] },
+        locate: true
+    }, err => { if (err) return console.error(err); Quagga.start(); });
+
+    Quagga.onDetected(res => {
+        const code = res.codeResult.code;
+        result.textContent = code;
+        if (code.length === 13) fetchItem(code);
+    });
+}
+
+function restartScanner() {
+    Quagga.stop();
+    result.textContent = "Aucun";
+    description.textContent = "En attente...";
+    price.textContent = "En attente...";
+    startScanner();
+}
+
+function fetchItem(code) {
+    fetch("/api/article", {
+        method: "POST",
+        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+        body: "codeBarre=" + code
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.message === "OK") {
+            description.textContent = data.results.designation;
+            price.textContent = data.results.prix + " €";
+        } else {
+            description.textContent = "Article non trouvé";
+            price.textContent = "N/A";
+        }
+    })
+    .catch(() => {
+        description.textContent = "Erreur serveur";
+        price.textContent = "N/A";
+    });
+}
+
+startScanner();
+</script>
 
 </body>
 </html>
